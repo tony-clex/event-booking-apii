@@ -143,6 +143,13 @@ export async function updateEvent(req, res, next) {
       date: date || existingEvent.date,
     };
 
+    if (date) {
+      const eventDate = new Date(date);
+      if (isNaN(eventDate.getTime()) || eventDate <= new Date()) {
+        return res.status(400).json({ error: 'Event date must be in the future' });
+      }
+    }
+
     if (total_seats !== undefined) {
       const currentAvailable = existingEvent.available_seats - (existingEvent.total_seats - total_seats);
       updatePayload.total_seats = total_seats;

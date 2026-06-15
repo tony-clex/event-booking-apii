@@ -4,7 +4,6 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/:id/book', authMiddleware, bookEvent);
 router.get('/', authMiddleware, getUserBookings);
 router.delete('/:id', authMiddleware, cancelBooking);
 
