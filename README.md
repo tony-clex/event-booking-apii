@@ -1,216 +1,374 @@
 # Event Booking API
 
-Node.js + Express API for event management and seat bookings powered by Supabase PostgreSQL.
+A simple event management and seat booking API built with Node.js, Express, and Supabase PostgreSQL.
 
-## Features
+## What it does
 
-- **Authentication**: JWT-based auth (register / login)
-- **Events (CRUD)**: Filter by date range, enforce future dates, prevent reducing seats below booked
-- **Bookings (protected)**: Reserve seats with an atomic database function when migrations are applied, list own bookings, cancel and restore seats
-- **Validation**: Basic input validation, weak-password minimum length, expired/invalid token handling
-- **Edge cases handled**: No overbooking via conditional seat reservation, duplicate booking guard, authorization checks (403)
+* User registration and login with JWT authentication
+* Create, view, update, and manage events
+* Filter events by date range
+* Prevent creating events in the past
+* Prevent reducing event capacity below the number of seats already booked
+* Book seats securely using an atomic database function (when migrations are applied)
+* View your own bookings
+* Cancel bookings and automatically restore seats
+* Basic request validation and error handling
+* Protection against overbooking, duplicate bookings, and unauthorized actions
 
 ## Tech Stack
 
-- Node.js (native `crypto` for PBKDF2 password hashing)
-- Express for routing
-- Supabase (`@supabase/supabase-js`) for PostgreSQL access
-- `jsonwebtoken` for JWT signing/verification
+* Node.js
+* Express
+* Supabase (`@supabase/supabase-js`)
+* PostgreSQL
+* `jsonwebtoken`
+* Native Node.js `crypto` module (PBKDF2 password hashing)
 
-## Local Setup
+## Getting Started
 
-```bash
+Install dependencies and create your environment file:
+
+bash
 npm install
 cp .env.example .env
-```
 
-Replace the `.env` values:
 
-```env
+Update the values inside `.env`:
+
+env
 DATABASE_URL=postgres://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 JWT_SECRET=<random-string>
-```
 
-### Apply Database Schema
 
-Run `npm run migrate` to apply `migrations/001_initial_schema.sql` through `DATABASE_URL`. If `DATABASE_URL` is not set, the script falls back to Supabase's `exec` RPC when enabled.
+## Database Setup
 
-### Seed Sample Data
+Apply the schema:
 
-```bash
+bash
+npm run migrate
+
+
+This runs `migrations/001_initial_schema.sql` using `DATABASE_URL`. If `DATABASE_URL` isn't available, the migration script falls back to Supabase's `exec` RPC (when enabled).
+
+## Seed Data
+
+To create sample users and events:
+
+bash
 npm run migrate
 npm run seed
-```
 
-Creates 3 sample users and 8 sample events.
-Sample credentials: `alice@example.com`, `bob@example.com`, `charlie@example.com` (password: `password123`).
 
-### Run Server
+The seed script creates:
 
-```bash
-npm run dev   # watcher
-npm start     # once
-```
+* 3 sample users
+* 8 sample events
 
-Server starts at `http://localhost:3000`.
+Sample accounts:
 
-## API Endpoints
+| Email                                             | Password    |
+| ------------------------------------------------- | ----------- |
+| [alice@example.com](mailto:alice@example.com)     | password123 |
+| [bob@example.com](mailto:bob@example.com)         | password123 |
+| [charlie@example.com](mailto:charlie@example.com) | password123 |
 
-All protected routes require header:
-```
+## Running the API
+
+bash
+npm run dev
+
+
+or
+
+bash
+npm start
+
+
+The server runs on:
+
+text
+http://localhost:3000
+
+
+## Authentication
+
+Protected endpoints require a bearer token:
+
+http
 Authorization: Bearer <token>
-```
 
-### Auth
 
-```
+### Register
+
+http
 POST /api/auth/register
-Body: { username, email, password }
 
+
+Request body:
+
+json
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+
+### Login
+
+http
 POST /api/auth/login
-Body: { email, password }
-```
 
-### Events
 
-```
+Request body:
+
+json
+{
+  "email": "alice@example.com",
+  "password": "password123"
+}
+
+
+## Events
+
+### Get Events
+
+http
 GET /api/events
-  ?startDate=2026-07-01&endDate=2026-08-31&limit=10&offset=0
 
+
+Query parameters:
+
+text
+startDate=2026-07-01
+endDate=2026-08-31
+limit=10
+offset=0
+
+
+### Get Event By ID
+
+http
 GET /api/events/:id
 
+
+### Create Event
+
+http
 POST /api/events
-Body: { title, description, date (future), total_seats }
 
+
+Request body:
+
+json
+{
+  "title": "Conference",
+  "description": "Annual tech conference",
+  "date": "2026-12-01T10:00:00",
+  "total_seats": 200
+}
+
+Notes:
+
+* Event date must be in the future.
+* Authentication is required.
+
+### Update Event
+
+http
 PUT /api/events/:id
-Body: { title, description?, date?, total_seats? }
-  Only created_by can update. Can't set total_seats below booked.
-```
 
-### Bookings
 
-```
+Request body:
+
+json
+{
+  "title": "Updated Conference",
+  "description": "Updated details",
+  "date": "2026-12-02T10:00:00",
+  "total_seats": 250
+}
+
+
+Rules:
+
+* Only the event creator can update the event.
+* `total_seats` cannot be set below the number of seats already booked.
+
+## Bookings
+
+### Create Booking
+
+http
 POST /api/events/:id/book
-Body: { seats }
 
+
+Request body:
+
+json
+{
+  "seats": 2
+}
+
+
+### Get My Bookings
+
+http
 GET /api/bookings
-  ?limit=20&offset=0
 
+
+Optional query parameters:
+
+text
+limit=20
+offset=0
+
+
+### Cancel Booking
+
+http
 DELETE /api/bookings/:id
-```
+
+
+Cancelling a booking automatically returns the reserved seats to the event.
 
 ## cURL Examples
 
 ### Register
 
-```bash
+bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"john","email":"john@example.com","password":"password123"}'
-```
+
 
 ### Login
 
-```bash
+bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@example.com","password":"password123"}'
-```
+
 
 ### List Events
 
-```bash
+bash
 curl http://localhost:3000/api/events?startDate=2026-07-01&endDate=2026-12-31
-```
+
 
 ### Create Event
 
-```bash
+bash
 TOKEN="<login_token>"
+
 curl -X POST http://localhost:3000/api/events \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"title":"New Conference","date":"2026-12-01T10:00:00","total_seats":200}'
-```
+
 
 ### Book Seats
 
-```bash
+bash
 TOKEN="<login_token>"
 EVENT_ID="1"
+
 curl -X POST http://localhost:3000/api/events/$EVENT_ID/book \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"seats":2}'
-```
 
-### My Bookings
 
-```bash
+### Get My Bookings
+
+bash
 TOKEN="<login_token>"
+
 curl http://localhost:3000/api/bookings \
   -H "Authorization: Bearer $TOKEN"
-```
 
-### Cancel Booking
+
+### Cancel a Booking
 
 ```bash
 TOKEN="<login_token>"
 BOOKING_ID="5"
+
 curl -X DELETE http://localhost:3000/api/bookings/$BOOKING_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## Error Handling
+## Error Responses
 
-| Code | Scenario |
-|------|----------|
-| 400 | Validation / invalid input / past date |
-| 401 | Missing / invalid / expired token |
-| 403 | Not event owner / not booking owner |
-| 409 | Insufficient seats / duplicate booking |
-| 404 | Event or booking not found |
+| Status Code | Description                                            |
+| ----------- | ------------------------------------------------------ |
+| 400         | Invalid request data, validation errors, or past dates |
+| 401         | Missing, invalid, or expired token                     |
+| 403         | User is not allowed to perform the action              |
+| 404         | Event or booking not found                             |
+| 409         | Duplicate booking or insufficient seats available      |
 
 ## Testing
 
-Uses built-in `node:test` runner and a real HTTP server loopback.
+The project uses Node.js's built-in test runner with a real HTTP server loopback.
+
+Run tests with:
 
 ```bash
 npm test
 ```
 
-Tests cover:
+Current test coverage includes:
 
-- Register / login (success and failure)
-- Protected endpoints without token
-- Event CRUD (future-date validation, owner-only updates, seat-cannot-go-below-booked)
-- Booking flow (success, overbooking, duplicate booking, cancellation)
-- Date-range filtering and pagination parameters
+* Registration and login
+* Invalid login attempts
+* Protected routes without authentication
+* Event creation and updates
+* Future date validation
+* Owner-only event updates
+* Preventing seat reductions below booked capacity
+* Successful bookings
+* Overbooking prevention
+* Duplicate booking prevention
+* Booking cancellation
+* Event filtering and pagination
 
-## Architecture
+## Project Structure
 
-```
+```text
 src/
-  config/database.js           # Supabase client
+  config/
+    database.js
+
   middleware/
-    auth.js                    # JWT verification
-    errorHandler.js            # Centralized error response
+    auth.js
+    errorHandler.js
+
   controllers/
-    authController.js          # register / login
-    eventController.js         # events CRUD
-    bookingController.js       # book / list / cancel
+    authController.js
+    eventController.js
+    bookingController.js
+
   routes/
-    auth.js / events.js / bookings.js
+    auth.js
+    events.js
+    bookings.js
+
   utils/
-    crypto.js                  # pbkdf2 hashing + jwt token helpers
-  server.js                    # Express app entrypoint
-  scripts/seed.js              # seed users + events
-  scripts/apply-migration.js   # optional migration helper
+    crypto.js
+
+  server.js
+
+  scripts/
+    seed.js
+    apply-migration.js
+
 migrations/
-  001_initial_schema.sql       # Supabase SQL schema and atomic booking RPCs
+  001_initial_schema.sql
+
 tests/
-  api.test.js                  # integration tests
+  api.test.js
 ```
