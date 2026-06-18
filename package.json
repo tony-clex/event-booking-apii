@@ -1,0 +1,28 @@
+{
+  "name": "event-booking-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Event booking API with Supabase PostgreSQL, JWT auth, and atomic bookings",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/**/*.test.js",
+    "migrate": "node src/scripts/apply-migration.js",
+    "seed": "node src/scripts/seed.js",
+    "setup": "node src/scripts/apply-migration.js && node src/scripts/seed.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-validator": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.21.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.4"
+  }
+}
