@@ -371,4 +371,3 @@ migrations/
 
 tests/
   api.test.js
-```
